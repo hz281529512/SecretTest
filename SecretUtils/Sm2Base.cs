@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using Org.BouncyCastle.Utilities.Encoders;
+﻿using Org.BouncyCastle.Utilities.Encoders;
 using SecretUtils.Crypto;
+using System.IO;
 
 namespace SecretUtils
 {
     public class Sm2Base
-    {   
+    {
         /// <summary>
         /// 生成SM2 byte Key
         /// </summary>
-        /// <returns></returns>
+        /// <returns>公钥和私钥键值对</returns>
         public static SM2KeyPair GenerateKey()
         {
             SM2KeyPair keys = SM2Util.GenerateKeyPair();
@@ -27,7 +24,7 @@ namespace SecretUtils
             return new SM2KeyPairString(SM2Util.GenerateKeyPair());
         }
         /// <summary>
-        /// 加密
+        /// 公钥加密
         /// </summary>
         /// <param name="pubkey">公钥</param>
         /// <param name="data">数据</param>
@@ -42,8 +39,9 @@ namespace SecretUtils
             byte[] cipher = SM2Util.Encrypt(pubkey, data);
             return cipher;
         }
+
         /// <summary>
-        /// 解密
+        /// 私钥解密
         /// </summary>
         /// <param name="privkey">私钥</param>
         /// <param name="data">数据</param>
@@ -59,12 +57,12 @@ namespace SecretUtils
             return plain;
         }
         /// <summary>
-        /// 签名
+        /// 私钥加签
         /// </summary>
         /// <returns></returns>
         public static byte[] Sign(byte[] privateKey, byte[] data)
         {
-            byte[] signByte= SM2Util.Sign(privateKey, data);
+            byte[] signByte = SM2Util.Sign(privateKey, data);
             return signByte;
         }
 
@@ -74,12 +72,12 @@ namespace SecretUtils
             return signByte;
         }
         /// <summary>
-        /// 验签
+        /// 公钥验签
         /// </summary>
         /// <returns></returns>
         public static bool VerifySign(byte[] publicKey, byte[] data, byte[] signData)
         {
-            bool b= SM2Util.VerifySign(publicKey, data, signData);
+            bool b = SM2Util.VerifySign(publicKey, data, signData);
             return b;
         }
         public static bool VerifySign(string publicKey, byte[] data, byte[] signData)
@@ -92,8 +90,14 @@ namespace SecretUtils
         /// </summary>
         /// <param name="keyData"></param>
         /// <param name="path"></param>
-        public static void GenerateKeyFile(byte[] keyData,string path)
+        public static void GenerateKeyFile(byte[] keyData, string path)
         {
+            // 若文件目录不存在，则先新建目录
+            var parentDir = Directory.GetParent(path).FullName;
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(parentDir);
+            }
             FileStream fs = new FileStream(path, FileMode.Create);
             BinaryWriter bw = new BinaryWriter(fs);
             bw.Write(keyData);
@@ -102,6 +106,12 @@ namespace SecretUtils
         }
         public static void GenerateKeyFile(string keyData, string path)
         {
+            // 若文件目录不存在，则先新建目录
+            var parentDir = Directory.GetParent(path).FullName;
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(parentDir);
+            }
             byte[] keyBytes = Hex.Decode(keyData);
             FileStream fs = new FileStream(path, FileMode.Create);
             BinaryWriter bw = new BinaryWriter(fs);
@@ -116,6 +126,10 @@ namespace SecretUtils
         /// <returns></returns>
         public static byte[] LoadKeyFileBytes(string filePath)
         {
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException();
+            }
             FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
             byte[] buffur = new byte[fs.Length];
             fs.Read(buffur, 0, (int)fs.Length);
@@ -123,6 +137,10 @@ namespace SecretUtils
         }
         public static string LoadKeyFileString(string filePath)
         {
+            if (!File.Exists(filePath))
+            {
+                throw new FileNotFoundException();
+            }
             FileStream fs = new FileStream(filePath, FileMode.Open, FileAccess.Read);
             byte[] buffur = new byte[fs.Length];
             fs.Read(buffur, 0, (int)fs.Length);
